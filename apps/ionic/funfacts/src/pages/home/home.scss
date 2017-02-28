@@ -1,0 +1,60 @@
+page-home {
+    button {
+        margin: 0 auto;
+        text-align: center;
+    }
+    ion-content {
+        .scroll-content {
+            padding: 50px !important;
+            h1 {
+                font-size: 24px;
+                color: rgba(255, 255, 255, 0.6);
+                font-weight: 400;
+            }
+            
+            p {
+               color: #fff;
+               font-size: 24px;
+               text-align: left;
+               position: absolute;
+               margin: 0 auto;
+               left: 0;
+               right: 0;
+               top: 50%;
+               transform: translateY(-50%); 
+               width: calc(100% - 100px);
+            }
+            
+            // override some ionic platform styles
+            button {
+                position: absolute;
+                margin: 0 auto;
+                left: 0;
+                right: 0;
+                bottom: 50px;
+                width: calc(100% - 100px);
+                background-color: white !important;
+                box-shadow: none;
+                border-radius: 0px;
+                height: 46px;
+                font-weight: 400;
+                text-align: center;
+                -webkit-transition-property: none !important;
+                transition-property: none !important;
+                &.activated {
+                    box-shadow: none;
+                }
+                &:hover {
+                    
+                    background-color: white !important;
+                }
+                &:active {
+                    box-shadow: none !important;
+                }
+                .button-effect {
+                    display: none;
+                }
+            }
+        }
+    }
+}
