@@ -8,7 +8,7 @@ var expressSanitizer = require('express-sanitizer');
 var bodyParser = require('body-parser');
 var fs = require('fs');
 var crypto = require('crypto');
-var https = require('https');
+var request = require('request');
 
 /**
  * Setup Express server
@@ -35,6 +35,7 @@ try {
     console.log('Unable to read auth.json');
 }
 
+var secret = config.secret;
 var apiKey = config.key;
 
 app.engine('html', require('ejs').renderFile)
@@ -45,31 +46,60 @@ app.set('view engine', 'ejs');
 
 app.get('/getAllStops', function(req, parentRes) {
     var color = req.sanitize(req.query.color);
-    var checksum = crypto.createHash('sha1');
     
     switch(color) {
         case 'green':
-            var url = 'https://realtime.mbta.com/developer/api/v2/stopsbyroute?api_key=' + apiKey + '&route=Green-B&format=json';
-            console.log("GET",url);
-            https.get(url, function(res) {
-                var output = '';
-                            
-                res.on('data', function(chunk) {
-                   output += chunk; 
-                   checksum.update(chunk);
-                });
+            var urls = [
+                { url: 'https://realtime.mbta.com/developer/api/v2/stopsbyroute?api_key=' + apiKey + '&route=Green-B&format=json', line: 'green-b' },
+                { url: 'https://realtime.mbta.com/developer/api/v2/stopsbyroute?api_key=' + apiKey + '&route=Green-C&format=json', line: 'green-c' },
+                { url: 'https://realtime.mbta.com/developer/api/v2/stopsbyroute?api_key=' + apiKey + '&route=Green-D&format=json', line: 'green-d' },
+                { url: 'https://realtime.mbta.com/developer/api/v2/stopsbyroute?api_key=' + apiKey + '&route=Green-E&format=json', line: 'green-e' }
+            ];
+            var completedRequests = 0;
+            var responses = [];
+            
+            urls.forEach(function(url) {
                 
-                res.on('end', function() {
-                    output = JSON.parse(output);
-                    var toReturn = {};
+                // create hash for each line for caching on client
+                var hash = crypto.createHmac('sha256', secret);
+                
+                // returned data will be stored here
+                var toReturn = {};
+                
+                // set options for GET request
+                var options = {
+                    uri: url.url,
+                    json: true,
+                    method: 'GET'
+                };
+                
+                // do get request
+                request(options, function(err, res, body) {
                     
-                    output.direction.forEach(function(routeDirection) {
-                        var direction = (routeDirection.direction_name == "Eastbound") ? 'outbound' : 'inbound';
+                    // error handling
+                    if (err) { parentRes.send(JSON.stringify({ success: false, data: err})); parentRes.end(); }
+                    
+                    // for each direction, determine if inbound or outbound
+                    body.direction.forEach(function(routeDirection) {
+
+                        var direction = (routeDirection.direction_id == '0') ? 'Outbound' : 'Inbound';
                         toReturn[direction] = routeDirection.stop;
                     });
                     
-                    parentRes.send(JSON.stringify({ success: true, data: toReturn, checksum: checksum.digest('hex')}));
-                    parentRes.end();  
+                    // add to return array
+                    responses.push({
+                        line: url.line,
+                        hash: hash.update(toReturn.toString()).digest('hex'),
+                        data: toReturn
+                    });
+                    
+                    completedRequests++;
+                    
+                    // if completedRequests == urls.length, then we are done
+                    if (completedRequests == urls.length) {
+                        parentRes.send(JSON.stringify({ success: true, data: responses}));
+                         parentRes.end();
+                    }
                 });
             });
             
@@ -84,33 +114,53 @@ app.get('/getAllStops', function(req, parentRes) {
 
 
 app.get('/getPredictionForStop', function(req, parentRes) {
-   var stop = req.sanitize(req.query.stop); 
-   var url = 'https://realtime.mbta.com/developer/api/v2/predictionsbystop?api_key=' + apiKey + '&stop=' + stop + '&format=json';
-   //var checksum = crypto.createHash('sha1');
-   
-   https.get(url, function(res) {
-        var output = '';
-                    
-        res.on('data', function(chunk) {
-           output += chunk; 
-           //checksum.update(chunk);
-        });
+    var stop = req.sanitize(req.query.stop); 
+    
+    if (stop) {
+        var options = {
+            uri: 'https://realtime.mbta.com/developer/api/v2/predictionsbystop?api_key=' + apiKey + '&stop=' + stop + '&format=json',
+            json: true,
+            method: 'GET'
+        };
         
-        res.on('end', function() {
-            output = JSON.parse(output);
-/*
-            var toReturn = {};
+        request(options, function(err, res, body) {
             
-            output.direction.forEach(function(routeDirection) {
-                var direction = (routeDirection.direction_name == "Eastbound") ? 'outbound' : 'inbound';
-                toReturn[direction] = routeDirection.stop;
-            });
-*/
+            // error handling
+            if (err) { parentRes.send(JSON.stringify({ success: false, data: err})); parentRes.end(); }
             
-            parentRes.send(JSON.stringify({ success: true, data: output}));
+            parentRes.send(JSON.stringify({ success: true, data: body}));
             parentRes.end();  
+    
         });
-    });
+    } else {
+        parentRes.send(JSON.stringify({ success: false, data: 'Invalid stop name'})); 
+        parentRes.end();
+    }
+});
+
+app.get('/getAlertsForStop', function(req, parentRes) {
+    var stop = req.sanitize(req.query.stop); 
+    
+    if (stop) {
+        var options = {
+            uri: 'https://realtime.mbta.com/developer/api/v2/alertsbystop?api_key=' + apiKey + '&stop=' + stop + '&include_access_alerts=true&include_service_alerts=true&format=json',
+            json: true,
+            method: 'GET'
+        };
+        
+        request(options, function(err, res, body) {
+            
+            // error handling
+            if (err) { parentRes.send(JSON.stringify({ success: false, data: err})); parentRes.end(); }
+            
+            parentRes.send(JSON.stringify({ success: true, data: body}));
+            parentRes.end();  
+    
+        });
+    } else {
+        parentRes.send(JSON.stringify({ success: false, data: 'Invalid stop name'})); 
+        parentRes.end();
+    }
 });
 console.log('Server running on port 8888');
 app.listen(8888);
