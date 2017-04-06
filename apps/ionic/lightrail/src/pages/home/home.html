@@ -1,0 +1,38 @@
+<ion-header>
+    <ion-navbar>
+        <ion-title>
+            Lightrail - {{ direction }}
+        </ion-title>
+        
+        <ion-buttons end>
+            <button ion-button icon-only (click)="presentPopover($event)">
+                <ion-icon name="more"></ion-icon>
+            </button>
+        </ion-buttons>
+    </ion-navbar>
+</ion-header>
+
+<ion-content>
+
+    <div #map id="map" style="height: 100%">
+        <ion-fab right bottom>
+            <button ion-fab color="light" (click)="getLocation()"><ion-icon name="locate"></ion-icon></button>
+        </ion-fab>
+    </div>
+
+</ion-content>
+
+
+<ion-footer>
+    <ion-toolbar>
+        <ion-title>
+            {{ destinationETA }} to {{ destination }}
+        </ion-title>
+        
+        <ion-buttons end *ngIf="alert">
+            <button ion-button icon-only (click)="presentAlertsModal()">
+                <ion-icon name="alert"></ion-icon>
+            </button>
+        </ion-buttons>
+    </ion-toolbar>
+</ion-footer>
