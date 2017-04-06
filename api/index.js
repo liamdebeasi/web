@@ -90,6 +90,7 @@ app.get('/getAllStops', function(req, parentRes) {
                     responses.push({
                         line: url.line,
                         hash: hash.update(toReturn.toString()).digest('hex'),
+                        lightRailTimestamp: Date.now(),
                         data: toReturn
                     });
                     
@@ -128,6 +129,8 @@ app.get('/getPredictionForStop', function(req, parentRes) {
             // error handling
             if (err) { parentRes.send(JSON.stringify({ success: false, data: err})); parentRes.end(); }
             
+            body.lightRailTimestamp = Date.now();
+            
             parentRes.send(JSON.stringify({ success: true, data: body}));
             parentRes.end();  
     
@@ -152,6 +155,8 @@ app.get('/getAlertsForStop', function(req, parentRes) {
             
             // error handling
             if (err) { parentRes.send(JSON.stringify({ success: false, data: err})); parentRes.end(); }
+            
+            body.lightRailTimestamp = Date.now();
             
             parentRes.send(JSON.stringify({ success: true, data: body}));
             parentRes.end();  
