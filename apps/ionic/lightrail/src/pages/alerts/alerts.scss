@@ -6,4 +6,10 @@ modal-alerts {
             }
         }
     }
+    
+    ion-content {
+        .scroll-content {
+            background-color: #efefef;
+        }
+    }
 }

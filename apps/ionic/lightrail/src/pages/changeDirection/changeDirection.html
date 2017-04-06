@@ -1,4 +1,10 @@
-<ion-list>
-    <button ion-item (click)="doChange()">Inbound</button>
-    <button ion-item (click)="doChange()">Outbound</button>
+<ion-list radio-group [(ngModel)]="direction">
+    <ion-item>
+        <ion-label>Inbound</ion-label>
+        <ion-radio value="Inbound" (click)="doChange('Inbound')"></ion-radio>
+    </ion-item>
+    <ion-item>
+        <ion-label>Outbound</ion-label>
+        <ion-radio value="Outbound" (click)="doChange('Outbound')"></ion-radio>
+    </ion-item>
 </ion-list>

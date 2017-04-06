@@ -1,10 +1,10 @@
 import { Component } from '@angular/core';
 import { NavController, PopoverController, ModalController, Platform } from 'ionic-angular';
-
 import { GoogleMaps, GoogleMap, GoogleMapsEvent, LatLng } from '@ionic-native/google-maps';
 
 import { ChangeDirection } from '../changeDirection/changeDirection';
 import { Alerts } from '../alerts/alerts';
+import { DataProvider } from '../../providers/data';
 
 @Component({
     selector: 'page-home',
@@ -12,21 +12,42 @@ import { Alerts } from '../alerts/alerts';
 })
 export class HomePage {
     
-    public direction: string = "Inbound";
-    public alert: boolean = true;
+    public direction: string = this.data.getData('direction');
+    public alerts: boolean = this.data.getData('alerts');
     
-    public destination: string = "Boston Univ. East";
-    public destinationETA: string = "5 mins";
+    public destination: string = this.data.getData('destination');
+    public destinationETA: string = this.data.getData('destinationETA');
     
     public map: GoogleMap;
 
-    constructor(private platform: Platform, public navCtrl: NavController, private maps: GoogleMaps, private popoverCtrl: PopoverController, private modalCtrl: ModalController) {
+    constructor(private platform: Platform, public navCtrl: NavController, private maps: GoogleMaps, private popoverCtrl: PopoverController, private modalCtrl: ModalController, private data: DataProvider) {
         
         // once the platform is ready, all Ionic Native plugins
         // are available, so we can initialize the map
         platform.ready().then(() => {
             this.loadMap();
         });
+        
+        // Watch for change in alerts
+        this.data.eventEmitters.alerts.subscribe(
+            (data) => {
+                this.alerts = data;
+            }
+        );
+        
+        // Watch for change in direction
+        this.data.eventEmitters.direction.subscribe(
+            (data) => {
+                this.direction = data;
+            }
+        );
+        
+        // Watch for change in destination
+        this.data.eventEmitters.destination.subscribe(
+            (data) => {
+                this.destination = data;
+            }
+        );
     }
     
     presentPopover(event: any): void {

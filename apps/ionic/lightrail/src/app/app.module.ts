@@ -5,6 +5,8 @@ import { SplashScreen } from '@ionic-native/splash-screen';
 import { StatusBar } from '@ionic-native/status-bar';
 import { GoogleMaps } from '@ionic-native/google-maps';
 
+import { DataProvider } from '../providers/data';
+
 import { MyApp } from './app.component';
 import { HomePage } from '../pages/home/home';
 import { Alerts } from '../pages/alerts/alerts';
@@ -19,7 +21,7 @@ import { ChangeDirection } from '../pages/changeDirection/changeDirection';
   ],
   imports: [
     BrowserModule,
-    IonicModule.forRoot(MyApp)
+    IonicModule.forRoot(MyApp, [DataProvider])
   ],
   bootstrap: [IonicApp],
   entryComponents: [
@@ -32,6 +34,7 @@ import { ChangeDirection } from '../pages/changeDirection/changeDirection';
     StatusBar,
     SplashScreen,
     GoogleMaps,
+    DataProvider,
     {provide: ErrorHandler, useClass: IonicErrorHandler}
   ]
 })
