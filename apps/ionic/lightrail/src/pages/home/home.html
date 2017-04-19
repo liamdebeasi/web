@@ -5,8 +5,8 @@
         </ion-title>
         
         <ion-buttons end>
-            <button ion-button icon-only (click)="presentPopover($event)">
-                <ion-icon name="more" color="light"></ion-icon>
+            <button ion-button icon-only (click)="changeDirection()">
+                <ion-icon name="swap" color="light"></ion-icon>
             </button>
         </ion-buttons>
     </ion-navbar>
@@ -16,8 +16,16 @@
 
     <div #map id="map">
         <ion-fab right bottom>
-            <button ion-fab color="light" (click)="getLocation()"><ion-icon name="locate"></ion-icon></button>
+            <button ion-fab color="light" (click)="getQuickLocation()"><ion-icon name="locate"></ion-icon></button>
         </ion-fab>
+<!--
+        
+        <ion-list>
+            <ion-item *ngFor="let c of console">
+            {{ c }}
+            </ion-item>
+        </ion-list>
+-->
     </div>
     
 </ion-content>

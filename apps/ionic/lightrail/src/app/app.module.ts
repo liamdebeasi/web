@@ -4,6 +4,7 @@ import { IonicApp, IonicErrorHandler, IonicModule } from 'ionic-angular';
 import { SplashScreen } from '@ionic-native/splash-screen';
 import { StatusBar } from '@ionic-native/status-bar';
 import { GoogleMaps } from '@ionic-native/google-maps';
+import { Geolocation } from '@ionic-native/geolocation';
 
 import { DataProvider } from '../providers/data';
 
@@ -34,6 +35,7 @@ import { ChangeDirection } from '../pages/changeDirection/changeDirection';
     StatusBar,
     SplashScreen,
     GoogleMaps,
+    Geolocation,
     DataProvider,
     {provide: ErrorHandler, useClass: IonicErrorHandler}
   ]

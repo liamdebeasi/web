@@ -6,17 +6,21 @@ import { HomePage } from '../pages/home/home';
 enableProdMode();
 
 @Component({
-  templateUrl: 'app.html'
+    templateUrl: 'app.html'
 })
 export class MyApp {
-  rootPage:any = HomePage;
+    rootPage:any = HomePage;
 
-  constructor(platform: Platform, statusBar: StatusBar) {
-    platform.ready().then(() => {
-      // Okay, so the platform is ready and our plugins are available.
-      // Here you can do any higher level native things you might need.
-      statusBar.styleDefault();
-    });
-  }
+    constructor(platform: Platform, statusBar: StatusBar) {
+        platform.ready().then(() => {
+            // Okay, so the platform is ready and our plugins are available.
+            // Here you can do any higher level native things you might need.
+            if (platform.is('android')) {
+              statusBar.backgroundColorByHexString('#399B00');
+            } else {
+                statusBar.styleDefault();
+            }
+        });
+    }
 }
 
