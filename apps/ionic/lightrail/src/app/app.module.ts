@@ -11,13 +11,11 @@ import { DataProvider } from '../providers/data';
 import { MyApp } from './app.component';
 import { HomePage } from '../pages/home/home';
 import { Alerts } from '../pages/alerts/alerts';
-import { ChangeDirection } from '../pages/changeDirection/changeDirection';
 
 @NgModule({
   declarations: [
     MyApp,
     HomePage,
-    ChangeDirection,
     Alerts
   ],
   imports: [
@@ -28,7 +26,6 @@ import { ChangeDirection } from '../pages/changeDirection/changeDirection';
   entryComponents: [
     MyApp,
     HomePage,
-    ChangeDirection,
     Alerts
   ],
   providers: [

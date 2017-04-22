@@ -4,7 +4,6 @@ import { NavController, PopoverController, ModalController, Platform } from 'ion
 import { GoogleMaps, GoogleMap, GoogleMapsEvent, Marker, LatLng } from '@ionic-native/google-maps';
 import { SplashScreen } from '@ionic-native/splash-screen';
 
-import { ChangeDirection } from '../changeDirection/changeDirection';
 import { Alerts } from '../alerts/alerts';
 import { DataProvider } from '../../providers/data';
 
@@ -22,8 +21,11 @@ export class HomePage {
     public location: any = this.data.getData('location');
     public locationMarker: Marker;
     
+    public stops: Array<any> = this.data.getData('stops');
+    
     public console: Array<string> = [];
     constructor(private platform: Platform, public navCtrl: NavController, private maps: GoogleMaps, private popoverCtrl: PopoverController, private modalCtrl: ModalController, private data: DataProvider, private splashScreen: SplashScreen) {
+        
         
         // once the platform is ready, all Ionic Native plugins
         // are available, so we can initialize the map
@@ -38,6 +40,12 @@ export class HomePage {
         // Watch for change in destination
         this.data.eventEmitters.destination.subscribe((data) => { this.destination = data; });
         
+        // Watch for change in destination ETA
+        this.data.eventEmitters.destinationETA.subscribe((data) => { this.destinationETA = data; });
+        
+        // Watch for change in stops
+        this.data.eventEmitters.stops.subscribe((data) => { setTimeout(function() { this.updateStops(data); }.bind(this), 3000); });
+        
         // Watch for change in location
         this.data.eventEmitters.location.subscribe((data) => { 
             this.location = data;
@@ -48,7 +56,48 @@ export class HomePage {
             }
             this.console.push(this.location.lat + ", " + this.location.lng);
         });
-        
+                
+    }
+    
+    public updateStops(data: any): void {
+
+        // Go through each line on the greeline
+        for (var l in data) {
+            var line = data[l];
+            var polyLine = [];
+            
+            // go through each stop on a specific line l
+            for (var s in line.data['Outbound']) {
+                
+                var stop = line.data['Outbound'][s];
+                var stopLocation = new LatLng(stop.stop_lat, stop.stop_lon);
+                
+                let parentStation = stop.parent_station;
+                
+                // push stop to array of lines
+                polyLine.push(stopLocation);
+                
+                // add a stop marker to the screen
+                this.map.addMarker({ 
+                    position: stopLocation,
+                    title: stop.parent_station_name,
+                    icon: { url: 'file:///android_asset/www/assets/icon/stop.png', size: { width: 18, height: 18 } },
+                    markerClick: function(marker) {
+                        this.data.setStation(marker.get('lightrailName'));
+                        
+                    }.bind(this)
+                }).then((marker: Marker) => { marker.set('lightrailName', parentStation) });
+            }
+            
+            this.map.addPolyline({
+              points: polyLine,
+              'color' : '#6EBB1F',
+              'width': 8,
+              'geodesic': false
+            });
+
+        }
+
     }
     
     changeDirection(): void {
@@ -57,17 +106,10 @@ export class HomePage {
         } else {
             this.data.setData('direction', 'Inbound');
         }
-    }
-    
-    presentPopover(event: any): void {
-        this.map.setClickable(false);
         
-        let popover = this.popoverCtrl.create(ChangeDirection);
-        popover.present({ ev: event });
-        
-        popover.onDidDismiss(() => { this.map.setClickable(true); });
+        this.data.changeDirection();
     }
-    
+
     presentAlertsModal(): void {
         this.map.setClickable(false);
         
@@ -95,7 +137,7 @@ export class HomePage {
                 
                 this.map.moveCamera({
                     target: myLocation,
-                    zoom: 18,
+                    zoom: 15,
                     tilt: 30
                 });
             
@@ -114,7 +156,7 @@ export class HomePage {
                 
                 this.map.animateCamera({
                     target: myLocation,
-                    zoom: 18,
+                    zoom: 15,
                     tilt: 30,
                     duration: 1000
                 });  
@@ -135,7 +177,7 @@ export class HomePage {
         
         this.map.animateCamera({
             target: myLocation,
-            zoom: 18,
+            zoom: 15,
             tilt: 30,
             duration: 1000
         }); 

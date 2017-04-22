@@ -22,6 +22,12 @@
         .catch(err => console.log('Error', err));
     }
   </script>-->
+  
+    <script>
+        if (window.Worker) {
+            var webWorker = new Worker("web-worker.js");
+        }
+    </script>
 
   <link href="build/main.css" rel="stylesheet">
 

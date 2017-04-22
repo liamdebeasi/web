@@ -2,6 +2,8 @@ import { Platform } from 'ionic-angular';
 import { Injectable, EventEmitter } from '@angular/core';
 import { Geolocation } from '@ionic-native/geolocation';
 
+declare var webWorker: any;
+
 /* Custom Type Definitions */
 interface EventObject {
     alerts: EventEmitter<boolean>,
@@ -9,7 +11,8 @@ interface EventObject {
     destination: EventEmitter<string>,
     destinationETA: EventEmitter<string>,
     alertsData: EventEmitter<Array<any>>,
-    location: EventEmitter<any>
+    location: EventEmitter<any>,
+    stops: EventEmitter<Array<any>>
 }
 
 interface DataObject {
@@ -18,7 +21,8 @@ interface DataObject {
     destination: string,
     destinationETA: string
     alertsData: Array<any>,
-    location: any
+    location: any,
+    stops: Array<any>
 }
 
 @Injectable()
@@ -29,7 +33,7 @@ export class DataProvider {
         alerts: true,
         direction: "Inbound",
         destination: "Boston Univ. East",
-        destinationETA: "5 mins",
+        destinationETA: "5 mins to",
         location: { lat: null, lng: null },
         alertsData: [
             {
@@ -56,7 +60,8 @@ export class DataProvider {
                 'header': 'Delay',
                 'content': 'Fitchburg Line Train 428 (8:25 pm from Wachusett) is operating 5-15 minutes behind schedule between Fitchburg Station & North Station.'
             }
-        ]
+        ],
+        stops: []
     }
     
     public eventEmitters: EventObject = {
@@ -65,11 +70,21 @@ export class DataProvider {
         destination: new EventEmitter(),
         destinationETA: new EventEmitter(),
         alertsData: new EventEmitter(),
-        location: new EventEmitter()
+        location: new EventEmitter(),
+        stops: new EventEmitter()
     }
+    
+    public lastRequest: any;
         
     /* DataProvider Constructor */
     constructor(private platform: Platform, private geolocation: Geolocation) {
+        // Add watcher for when web worker sends message to main thread
+        webWorker.addEventListener('message', this.handleWebWorkerMessage.bind(this));
+        
+        // Get all Greenline stops
+        webWorker.postMessage( { type: 'getStops' } );
+        
+        // Watch user's location
         let watch = this.geolocation.watchPosition();
         watch.subscribe((resp) => {
             if (resp.coords) { 
@@ -79,6 +94,58 @@ export class DataProvider {
                 console.log('Error getting updated location');
             }
         });
+    }
+    
+    public changeDirection(): void {
+        // since we save both the outbound and inbound data
+        // for a stop, we can just quickly update it here
+        // without having to make a new request
+        console.log(this.lastRequest);
+        
+        var trip = this.lastRequest[this.getData('direction')];
+        var stop_name = this.lastRequest.stop_name;
+        
+        if (trip) {
+            var formattedETA = (Math.floor(parseInt(trip.pre_away)/60)).toString() + " mins to";
+            
+            this.setData('destination', stop_name);
+            this.setData('destinationETA', formattedETA);
+        } else {
+            // sometimes the MBTA doesn't provide predictions for certain stops/direction combos (i.e. Fenway Outbound)
+            this.setData('destination', '');
+            this.setData('destinationETA', 'No predictions for this station');
+        }
+    }
+    
+    public setStation(stop: string): any {
+        console.log('setting station');
+        webWorker.postMessage( { type: 'getPredictionForStop', payload: { stop: stop } });
+        return true;
+    }
+    
+    public handleWebWorkerMessage(res: any): void {
+        var type = res.data.type;
+        
+        if (type == 'getStops') { 
+            this.setData('stops', res.data.data.data);
+        } else if (type == 'getPredictionForStop') {
+            
+            this.lastRequest = res.data.data.data;
+            
+            var trip = res.data.data.data[this.getData('direction')];
+            var stop_name = res.data.data.data.stop_name;
+            console.log(res.data.data.data);
+            if (trip) {
+                var formattedETA = (Math.floor(parseInt(trip.pre_away)/60)).toString() + " mins to";
+                
+                this.setData('destination', stop_name);
+                this.setData('destinationETA', formattedETA);
+            } else {
+                // sometimes the MBTA doesn't provide predictions for certain stops/direction combos (i.e. Fenway Outbound)
+                this.setData('destination', '');
+                this.setData('destinationETA', 'No predictions for this station');
+            }
+        }
     }
 
     /* Data Provider Methods */
