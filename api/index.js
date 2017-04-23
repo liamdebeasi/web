@@ -22,6 +22,12 @@ app.use(bodyParser.json());
 app.use(express.static(__dirname + '/assets'));
 app.use(expressSanitizer());
 
+app.use(function(req, res, next) {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  next();
+});
+
 
 /**
  * Get auth keys
@@ -46,6 +52,8 @@ app.set('view engine', 'ejs');
 
 app.get('/getAllStops', function(req, parentRes) {
     var color = req.sanitize(req.query.color);
+    
+    console.log('request to get all stops');
     
     switch(color) {
         case 'green':
@@ -98,8 +106,9 @@ app.get('/getAllStops', function(req, parentRes) {
                     
                     // if completedRequests == urls.length, then we are done
                     if (completedRequests == urls.length) {
+                        console.log('done');
                         parentRes.send(JSON.stringify({ success: true, data: responses}));
-                         parentRes.end();
+                        parentRes.end();
                     }
                 });
             });
@@ -126,12 +135,39 @@ app.get('/getPredictionForStop', function(req, parentRes) {
         
         request(options, function(err, res, body) {
             
+            var toReturn = {};
+            toReturn.stop_name = body.stop_name;
+            toReturn.stop_id = body.stop_id;
+            toReturn.alerts = body.alert_headers;
+            
             // error handling
             if (err) { parentRes.send(JSON.stringify({ success: false, data: err})); parentRes.end(); }
+
+            toReturn.lightRailTimestamp = Date.now();
             
-            body.lightRailTimestamp = Date.now();
+            for (var d in body.mode[0].route[0].direction) {
+                
+                // Prediction object
+                var location = body.mode[0].route[0].direction[d];
+                // Determine direction
+                var direction = (location.direction_id == '0') ? 'Outbound' : 'Inbound';
+
+                
+                var closestTrain = 0;
+                for (var t in location.trip) {
+                    var currClosest = parseInt(location.trip[closestTrain].pre_away);
+                    var tryClosest = parseInt(location.trip[t].pre_away); 
+                    
+                    if (tryClosest < currClosest) {
+                        closestTrain = t;
+                    }
+                }
+                
+                toReturn[direction] = location.trip[closestTrain];
+                
+            }
             
-            parentRes.send(JSON.stringify({ success: true, data: body}));
+            parentRes.send(JSON.stringify({ success: true, data: toReturn}));
             parentRes.end();  
     
         });
