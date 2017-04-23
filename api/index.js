@@ -122,7 +122,6 @@ app.get('/getAllStops', function(req, parentRes) {
 
 });
 
-
 app.get('/getPredictionForStop', function(req, parentRes) {
     var stop = req.sanitize(req.query.stop); 
     
