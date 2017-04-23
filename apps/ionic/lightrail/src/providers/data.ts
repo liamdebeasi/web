@@ -24,7 +24,8 @@ interface DataObject {
     destinationETA: string
     alertsData: Array<any>,
     location: any,
-    stops: Array<any>
+    stops: Array<any>,
+    station: string
 }
 
 @Injectable()
@@ -38,7 +39,8 @@ export class DataProvider {
         destinationETA: "5 mins to",
         location: { lat: null, lng: null },
         alertsData: [],
-        stops: []
+        stops: [],
+        station: ''
     }
     
     public eventEmitters: EventObject = {
@@ -78,76 +80,69 @@ export class DataProvider {
         let watch = this.geolocation.watchPosition();
         watch.subscribe((resp) => {
             if (resp.coords) { 
-                console.log('Updated location:',resp);
                 this.setData('location', { lat: resp.coords.latitude, lng: resp.coords.longitude }); 
             } else {
                 console.log('Error getting updated location');
             }
         });
+        
+        // every 20 seconds fetch new prediction for the stop
+        setInterval(function(){
+            webWorker.postMessage( { type: 'getPredictionForStop', payload: { stop: this.getData('station') } });
+        }.bind(this), 20000);
     }
     
     public changeDirection(): void {
         // since we save both the outbound and inbound data
         // for a stop, we can just quickly update it here
-        // without having to make a new request
-        console.log(this.lastRequest);
-        
+        // without having to make a new request        
         var trip = this.lastRequest[this.getData('direction')];
-        var stop_name = this.lastRequest.stop_name;
         
-        if (trip) {
-            var formattedETA = (Math.floor(parseInt(trip.pre_away)/60)).toString() + " mins to";
-            
-            this.setData('destination', stop_name);
-            this.setData('destinationETA', formattedETA);
-        } else {
-            // sometimes the MBTA doesn't provide predictions for certain stops/direction combos (i.e. Fenway Outbound)
-            this.setData('destination', '');
-            this.setData('destinationETA', 'No predictions for this station');
-        }
+        this.setData('destination', trip.destination);
+        this.setData('destinationETA', trip.destinationETA);
     }
     
+    // User tapped a new station marker
     public setStation(stop: string): any {
-        console.log('setting station');
+        this.setData('station', stop);
         webWorker.postMessage( { type: 'getPredictionForStop', payload: { stop: stop } });
         return true;
     }
     
+    // handle response from web worker
     public handleWebWorkerMessage(res: any): void {
-        var type = res.data.type;
-        
-        if (type == 'getStops') { 
-            this.setData('stops', res.data.data.data);
+
+        switch(res.data.type) {
+            case "getStops":
+                this.setData('stops', res.data.data.data);
             
-            // save to local storage
-            // so we do not have to ping server next time
-            this.storage.set('stops', JSON.stringify(res.data.data.data));
-        } else if (type == 'getPredictionForStop') {
-            
-            this.lastRequest = res.data.data.data;
-            
-            var trip = res.data.data.data[this.getData('direction')];
-            var alerts = res.data.data.data.alerts;
-            var stop_name = res.data.data.data.stop_name;
-            console.log(res.data.data.data);
-            if (trip) {
-                var formattedETA = (Math.floor(parseInt(trip.pre_away)/60)).toString() + " mins to";
+                // save to local storage
+                // so we do not have to ping server next time
+                this.storage.set('stops', JSON.stringify(res.data.data.data));
+                break;
                 
-                this.setData('destination', stop_name);
-                this.setData('destinationETA', formattedETA);
-            } else {
-                // sometimes the MBTA doesn't provide predictions for certain stops/direction combos (i.e. Fenway Outbound)
-                this.setData('destination', '');
-                this.setData('destinationETA', 'No predictions for this station');
-            }
+            case "getPredictionForStop":
+                this.lastRequest = res.data.data.data;
             
-            if (alerts.length > 0) {
-                this.setData('alertsData', alerts);
-                this.setData('alerts', true);
-            } else {
-                this.setData('alerts', false);
-            }
+                var trip = res.data.data.data[this.getData('direction')];
+                var alerts = res.data.data.data.alerts;
+                
+                this.setData('destination', trip.destination);
+                this.setData('destinationETA', trip.destinationETA);
+                
+                if (alerts.length > 0) {
+                    this.setData('alertsData', alerts);
+                    this.setData('alerts', true);
+                } else {
+                    this.setData('alerts', false);
+                }
+                break;
+                
+            default:
+                console.error("Unknown command");
+                break;
         }
+
     }
 
     /* Data Provider Methods */
@@ -157,7 +152,9 @@ export class DataProvider {
     
     public setData(key: string, value: any): void {
         this.transitInfo[key] = value;
-        this.eventEmitters[key].emit(this.transitInfo[key]);
+        if (this.eventEmitters[key]) {
+            this.eventEmitters[key].emit(this.transitInfo[key]);
+        }
     }
     
 }

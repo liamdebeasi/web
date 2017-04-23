@@ -21,6 +21,8 @@ export class HomePage {
     public location: any = this.data.getData('location');
     public locationMarker: Marker;
     
+    public mapIsLoaded: boolean = false;
+    
     public stops: Array<any> = this.data.getData('stops');
     
     constructor(private platform: Platform, public navCtrl: NavController, private maps: GoogleMaps, private popoverCtrl: PopoverController, private modalCtrl: ModalController, private data: DataProvider, private splashScreen: SplashScreen) {
@@ -43,7 +45,7 @@ export class HomePage {
         this.data.eventEmitters.destinationETA.subscribe((data) => { this.destinationETA = data; });
         
         // Watch for change in stops
-        this.data.eventEmitters.stops.subscribe((data) => { setTimeout(function() { this.updateStops(data); }.bind(this), 3000); });
+        this.data.eventEmitters.stops.subscribe((data) => { this.stops = data; if (this.mapIsLoaded) { this.updateStops(data); } });
         
         // Watch for change in location
         this.data.eventEmitters.location.subscribe((data) => { 
@@ -54,7 +56,7 @@ export class HomePage {
     }
     
     public updateStops(data: any): void {
-
+        console.log('adding stop data');
         // Go through each line on the greeline
         for (var l in data) {
             var line = data[l];
@@ -81,6 +83,7 @@ export class HomePage {
                         
                     }.bind(this)
                 }).then((marker: Marker) => { marker.set('lightrailName', parentStation) });
+                
             }
             
             this.map.addPolyline({
@@ -91,6 +94,8 @@ export class HomePage {
             });
 
         }
+        
+        console.log('done!');
 
     }
     
@@ -188,7 +193,7 @@ export class HomePage {
         
         // listen for MAP_READY event
         // must wait for this to fire before adding anything to map
-        this.map.one(GoogleMapsEvent.MAP_READY).then(() => { this.getQuickLocation(true); });
+        this.map.one(GoogleMapsEvent.MAP_READY).then(() => { this.mapIsLoaded = true; if (this.stops.length > 0) { this.updateStops(this.stops); } this.getQuickLocation(true); });
     }
     
 
