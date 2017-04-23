@@ -1,5 +1,7 @@
 import { Platform } from 'ionic-angular';
+import { Storage } from '@ionic/storage';
 import { Injectable, EventEmitter } from '@angular/core';
+
 import { Geolocation } from '@ionic-native/geolocation';
 
 declare var webWorker: any;
@@ -35,32 +37,7 @@ export class DataProvider {
         destination: "Boston Univ. East",
         destinationETA: "5 mins to",
         location: { lat: null, lng: null },
-        alertsData: [
-            {
-                'header': 'Service Change',
-                'content': 'Pedestrian access to North Station will be along Legends Way through April 2017, due to the Hub on Causeway Project'
-            },
-            {
-                'header': 'Shuttle',
-                'content': 'Buses will replace Red Line service between Harvard and Alewife Stations during the weekends of April 29 - 30 from start to end of service.'
-            },
-            {
-                'header': 'Delay',
-                'content': 'Fitchburg Line Train 428 (8:25 pm from Wachusett) is operating 5-15 minutes behind schedule between Fitchburg Station & North Station.'
-            },
-            {
-                'header': 'Service Change',
-                'content': 'Pedestrian access to North Station will be along Legends Way through April 2017, due to the Hub on Causeway Project'
-            },
-            {
-                'header': 'Shuttle',
-                'content': 'Buses will replace Red Line service between Harvard and Alewife Stations during the weekends of April 29 - 30 from start to end of service.'
-            },
-            {
-                'header': 'Delay',
-                'content': 'Fitchburg Line Train 428 (8:25 pm from Wachusett) is operating 5-15 minutes behind schedule between Fitchburg Station & North Station.'
-            }
-        ],
+        alertsData: [],
         stops: []
     }
     
@@ -77,12 +54,25 @@ export class DataProvider {
     public lastRequest: any;
         
     /* DataProvider Constructor */
-    constructor(private platform: Platform, private geolocation: Geolocation) {
+    constructor(private platform: Platform, private geolocation: Geolocation, private storage: Storage) {
         // Add watcher for when web worker sends message to main thread
         webWorker.addEventListener('message', this.handleWebWorkerMessage.bind(this));
         
         // Get all Greenline stops
-        webWorker.postMessage( { type: 'getStops' } );
+        this.storage.ready().then(() => {
+            this.storage.get('stops').then((val) => {
+
+                // if we have them stored locally,
+                // just retrieve them from the cache
+                if (val) {
+                    this.setData('stops', JSON.parse(val));
+                    
+                // otherwise, ping the server for a set of data
+                } else {
+                    webWorker.postMessage( { type: 'getStops' } );
+                }
+            });
+        });
         
         // Watch user's location
         let watch = this.geolocation.watchPosition();
@@ -128,11 +118,16 @@ export class DataProvider {
         
         if (type == 'getStops') { 
             this.setData('stops', res.data.data.data);
+            
+            // save to local storage
+            // so we do not have to ping server next time
+            this.storage.set('stops', JSON.stringify(res.data.data.data));
         } else if (type == 'getPredictionForStop') {
             
             this.lastRequest = res.data.data.data;
             
             var trip = res.data.data.data[this.getData('direction')];
+            var alerts = res.data.data.data.alerts;
             var stop_name = res.data.data.data.stop_name;
             console.log(res.data.data.data);
             if (trip) {
@@ -144,6 +139,13 @@ export class DataProvider {
                 // sometimes the MBTA doesn't provide predictions for certain stops/direction combos (i.e. Fenway Outbound)
                 this.setData('destination', '');
                 this.setData('destinationETA', 'No predictions for this station');
+            }
+            
+            if (alerts.length > 0) {
+                this.setData('alertsData', alerts);
+                this.setData('alerts', true);
+            } else {
+                this.setData('alerts', false);
             }
         }
     }

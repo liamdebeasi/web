@@ -23,7 +23,6 @@ export class HomePage {
     
     public stops: Array<any> = this.data.getData('stops');
     
-    public console: Array<string> = [];
     constructor(private platform: Platform, public navCtrl: NavController, private maps: GoogleMaps, private popoverCtrl: PopoverController, private modalCtrl: ModalController, private data: DataProvider, private splashScreen: SplashScreen) {
         
         
@@ -50,11 +49,6 @@ export class HomePage {
         this.data.eventEmitters.location.subscribe((data) => { 
             this.location = data;
             this.updateLocation();
-            
-            if (this.console.length > 5) {
-                this.console = [];
-            }
-            this.console.push(this.location.lat + ", " + this.location.lng);
         });
                 
     }
@@ -100,6 +94,7 @@ export class HomePage {
 
     }
     
+    // Change direction from inbound to outbound or vice versa
     changeDirection(): void {
         if (this.direction == 'Inbound') {
             this.data.setData('direction', 'Outbound');
@@ -110,10 +105,11 @@ export class HomePage {
         this.data.changeDirection();
     }
 
+    // show alerts pane
     presentAlertsModal(): void {
         this.map.setClickable(false);
         
-        let modal = this.modalCtrl.create(Alerts, { route: 'test' });
+        let modal = this.modalCtrl.create(Alerts);
         modal.present();
         
         modal.onDidDismiss(() => { this.map.setClickable(true); });
@@ -123,7 +119,6 @@ export class HomePage {
     // on startup or when user taps location button
     // otherwise, we would just use the watch position method 
     // in the geolocation library
-    
     // first: whether or not this is first load
     getQuickLocation(first: boolean = false): void {
         
@@ -145,7 +140,6 @@ export class HomePage {
                 this.map.addMarker({ position: myLocation, title: "Current Location", icon: { url: 'file:///android_asset/www/assets/icon/marker.png', size: { width: 20, height: 20 } } })
                     .then((marker: Marker) => {                        
                         this.locationMarker = marker;
-                        console.log(this.locationMarker);
                     });
                 
                 // if in bootup, only hide splashscreen once map has
@@ -158,16 +152,13 @@ export class HomePage {
                     target: myLocation,
                     zoom: 15,
                     tilt: 30,
-                    duration: 1000
+                    duration: 500
                 });  
                 
                 this.locationMarker.setPosition(myLocation);
                 
             }    
-            
-            
-            console.log(this.map);    
-            
+                    
         }.bind(this));
     }
 
@@ -179,7 +170,7 @@ export class HomePage {
             target: myLocation,
             zoom: 15,
             tilt: 30,
-            duration: 1000
+            duration: 500
         }); 
         
         try {
@@ -198,9 +189,6 @@ export class HomePage {
         // listen for MAP_READY event
         // must wait for this to fire before adding anything to map
         this.map.one(GoogleMapsEvent.MAP_READY).then(() => { this.getQuickLocation(true); });
-        
-        // debug -- remove this to pan map
-        //this.map.setClickable(false);
     }
     
 
