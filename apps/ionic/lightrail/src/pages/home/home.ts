@@ -45,7 +45,7 @@ export class HomePage {
         this.data.eventEmitters.destinationETA.subscribe((data) => { this.destinationETA = data; });
         
         // Watch for change in stops
-        this.data.eventEmitters.stops.subscribe((data) => { this.stops = data; if (this.mapIsLoaded) { this.updateStops(data); } });
+        this.data.eventEmitters.stops.subscribe((data) => { this.stops = data; console.log('got stops'); if (this.mapIsLoaded) { this.updateStops(data); } });
         
         // Watch for change in location
         this.data.eventEmitters.location.subscribe((data) => { 
@@ -128,7 +128,12 @@ export class HomePage {
     getQuickLocation(first: boolean = false): void {
         
         console.log('getting quick location');
+        try {
         this.map.getMyLocation(function(location) {
+              
+            if (this.stops.length > 0) {
+                this.data.setClosestStop(location.latLng.lat, location.latLng.lng);
+            }
             
             // set location of map
             let myLocation: LatLng = new LatLng(location.latLng.lat, location.latLng.lng);
@@ -162,9 +167,11 @@ export class HomePage {
                 
                 this.locationMarker.setPosition(myLocation);
                 
-            }    
-                    
+            }      
         }.bind(this));
+        } catch(e) {
+            console.log(e);
+        }
     }
 
     updateLocation(): void {
@@ -193,7 +200,7 @@ export class HomePage {
         
         // listen for MAP_READY event
         // must wait for this to fire before adding anything to map
-        this.map.one(GoogleMapsEvent.MAP_READY).then(() => { this.mapIsLoaded = true; if (this.stops.length > 0) { this.updateStops(this.stops); } this.getQuickLocation(true); });
+        this.map.one(GoogleMapsEvent.MAP_READY).then(() => { console.log('map is loaded'); this.mapIsLoaded = true; if (this.stops.length > 0) { this.updateStops(this.stops); } this.getQuickLocation(true); });
     }
     
 

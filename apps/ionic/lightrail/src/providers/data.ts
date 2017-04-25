@@ -35,8 +35,8 @@ export class DataProvider {
     public transitInfo: DataObject = {
         alerts: true,
         direction: "Inbound",
-        destination: "Boston Univ. East",
-        destinationETA: "5 mins to",
+        destination: "",
+        destinationETA: "",
         location: { lat: null, lng: null },
         alertsData: [],
         stops: [],
@@ -68,6 +68,7 @@ export class DataProvider {
                 // just retrieve them from the cache
                 if (val) {
                     this.setData('stops', JSON.parse(val));
+                    console.log(this.transitInfo.stops);
                     
                 // otherwise, ping the server for a set of data
                 } else {
@@ -80,6 +81,7 @@ export class DataProvider {
         let watch = this.geolocation.watchPosition();
         watch.subscribe((resp) => {
             if (resp.coords) { 
+                console.log(resp.coords);
                 this.setData('location', { lat: resp.coords.latitude, lng: resp.coords.longitude }); 
             } else {
                 console.log('Error getting updated location');
@@ -104,6 +106,7 @@ export class DataProvider {
     
     // User tapped a new station marker
     public setStation(stop: string): any {
+        console.log('setting station');
         this.setData('station', stop);
         webWorker.postMessage( { type: 'getPredictionForStop', payload: { stop: stop } });
         return true;
@@ -115,7 +118,7 @@ export class DataProvider {
         switch(res.data.type) {
             case "getStops":
                 this.setData('stops', res.data.data.data);
-            
+                            
                 // save to local storage
                 // so we do not have to ping server next time
                 this.storage.set('stops', JSON.stringify(res.data.data.data));
@@ -156,5 +159,53 @@ export class DataProvider {
             this.eventEmitters[key].emit(this.transitInfo[key]);
         }
     }
+    
+    // From: http://stackoverflow.com/questions/17807915/using-the-haversine-formula-in-javascript-with-variables
+    public deg2rad(degrees: number): number {
+        return degrees * (Math.PI/180);
+    }
+
+    public Haversine(lat1: number, lon1: number, lat2: number, lon2: number): string {
+        var deltaLat = lat2 - lat1 ;
+        var deltaLon = lon2 - lon1 ;
+        var earthRadius =  6369087 ; // in meters 3959 in miles.
+        var alpha    = deltaLat/2;
+        var beta     = deltaLon/2;
+        var a        = Math.sin(this.deg2rad(alpha)) * Math.sin(this.deg2rad(alpha)) + Math.cos(this.deg2rad(lat1)) * Math.cos(this.deg2rad(lat2)) * Math.sin(this.deg2rad(beta)) * Math.sin(this.deg2rad(beta)) ;
+        var c        = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        var distance =  earthRadius * c;
+        return distance.toFixed(2);
+    }
+    
+    public setClosestStop(latitude: number, longitude: number): void {
+        var closestStopLine = null;
+        var closestStopStation = null;
+        var closestDistance = null;
+        
+        for (var l in this.transitInfo.stops) {
+            var line = this.transitInfo.stops[l];
+            for (var s in line.data.Inbound) {
+                var stop = line.data.Inbound[s];
+                var distance = parseFloat(this.Haversine(latitude, longitude, stop.stop_lat, stop.stop_lon));
+                //console.log('Distance between ',latitude,',',longitude,'and',stop.stop_lat,',',stop.stop_lon,'is:',distance);
+                //console.log(typeof(distance),typeof(closestDistance));
+                if (closestDistance === null || distance < closestDistance) {
+                    //console.log('setting closest');
+                    closestDistance = distance;
+                    closestStopStation = s;
+                    closestStopLine = l;
+                }
+                //console.log('closests is',closestDistance);
+            }            
+        }
+        
+        try {
+            this.setStation(this.transitInfo.stops[closestStopLine].data.Inbound[closestStopStation].parent_station);
+        } catch(e) {
+            console.log(e);
+        }
+        
+    }
+
     
 }
