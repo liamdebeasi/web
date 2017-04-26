@@ -2,7 +2,7 @@ onmessage = function(e) {
     switch(e.data.type) {
         case "getStops":
             
-            fetch('https://mighty-mesa-25607.herokuapp.com/getAllStops?color=green')
+            fetch('https://69g7s44ull.execute-api.us-west-2.amazonaws.com/prod/getAllStops?color=green')
             	.then(function(res) {
             		 if (res.status !== 200) {
             			self.postMessage({ success: false, type: 'getStops', data: res.status});
@@ -19,7 +19,7 @@ onmessage = function(e) {
             
         case "getPredictionForStop":
             if (e.data.payload.stop) {
-                fetch('https://mighty-mesa-25607.herokuapp.com/getPredictionForStop?stop=' + e.data.payload.stop)
+                fetch('https://69g7s44ull.execute-api.us-west-2.amazonaws.com/prod/getPredictionForStop?stop=' + e.data.payload.stop)
                 	.then(function(res) {
                 		 if (res.status !== 200) {
                 			self.postMessage({ success: false, type: 'getPredictionForStop', data: res.status});
