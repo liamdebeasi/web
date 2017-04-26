@@ -14,7 +14,8 @@ interface EventObject {
     destinationETA: EventEmitter<string>,
     alertsData: EventEmitter<Array<any>>,
     location: EventEmitter<any>,
-    stops: EventEmitter<Array<any>>
+    stops: EventEmitter<Array<any>>,
+    vehicles: EventEmitter<any>
 }
 
 interface DataObject {
@@ -25,7 +26,8 @@ interface DataObject {
     alertsData: Array<any>,
     location: any,
     stops: Array<any>,
-    station: string
+    station: string,
+    vehicles: any
 }
 
 @Injectable()
@@ -40,7 +42,8 @@ export class DataProvider {
         location: { lat: null, lng: null },
         alertsData: [],
         stops: [],
-        station: ''
+        station: '',
+        vehicles: {}
     }
     
     public eventEmitters: EventObject = {
@@ -50,7 +53,8 @@ export class DataProvider {
         destinationETA: new EventEmitter(),
         alertsData: new EventEmitter(),
         location: new EventEmitter(),
-        stops: new EventEmitter()
+        stops: new EventEmitter(),
+        vehicles: new EventEmitter()
     }
     
     public lastRequest: any;
@@ -77,20 +81,22 @@ export class DataProvider {
             });
         });
         
+        webWorker.postMessage( { type: 'getVehicleLocations', payload: { routes: 'Green-B,Green-C,Green-D,Green-E' } });
+        
         // Watch user's location
         let watch = this.geolocation.watchPosition();
         watch.subscribe((resp) => {
             if (resp.coords) { 
-                console.log(resp.coords);
                 this.setData('location', { lat: resp.coords.latitude, lng: resp.coords.longitude }); 
             } else {
                 console.log('Error getting updated location');
             }
         });
         
-        // every 20 seconds fetch new prediction for the stop
+        // every 20 seconds fetch new prediction for the stop AND get updated vehicle locations
         setInterval(function(){
             webWorker.postMessage( { type: 'getPredictionForStop', payload: { stop: this.getData('station') } });
+            webWorker.postMessage( { type: 'getVehicleLocations', payload: { routes: 'Green-B,Green-C,Green-D,Green-E' } });
         }.bind(this), 20000);
     }
     
@@ -106,7 +112,6 @@ export class DataProvider {
     
     // User tapped a new station marker
     public setStation(stop: string): any {
-        console.log('setting station');
         this.setData('station', stop);
         webWorker.postMessage( { type: 'getPredictionForStop', payload: { stop: stop } });
         return true;
@@ -139,6 +144,11 @@ export class DataProvider {
                 } else {
                     this.setData('alerts', false);
                 }
+                break;
+            
+            case "getVehicleLocations":
+
+                this.setData('vehicles', res.data.data.data);
                 break;
                 
             default:
@@ -206,6 +216,5 @@ export class DataProvider {
         }
         
     }
-
     
 }

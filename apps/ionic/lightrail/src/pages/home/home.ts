@@ -25,8 +25,9 @@ export class HomePage {
     
     public stops: Array<any> = this.data.getData('stops');
     
+    public allVehicles = {};
+    
     constructor(private platform: Platform, public navCtrl: NavController, private maps: GoogleMaps, private popoverCtrl: PopoverController, private modalCtrl: ModalController, private data: DataProvider, private splashScreen: SplashScreen) {
-        
         
         // once the platform is ready, all Ionic Native plugins
         // are available, so we can initialize the map
@@ -36,7 +37,7 @@ export class HomePage {
         this.data.eventEmitters.alerts.subscribe((data) => { this.alerts = data; });
         
         // Watch for change in direction
-        this.data.eventEmitters.direction.subscribe((data) => { this.direction = data; });
+        this.data.eventEmitters.direction.subscribe((data) => { this.direction = data; this.updateVehicleVisibility(); });
         
         // Watch for change in destination
         this.data.eventEmitters.destination.subscribe((data) => { this.destination = data; });
@@ -45,18 +46,76 @@ export class HomePage {
         this.data.eventEmitters.destinationETA.subscribe((data) => { this.destinationETA = data; });
         
         // Watch for change in stops
-        this.data.eventEmitters.stops.subscribe((data) => { this.stops = data; console.log('got stops'); if (this.mapIsLoaded) { this.updateStops(data); } });
+        this.data.eventEmitters.stops.subscribe((data) => { this.stops = data; if (this.mapIsLoaded) { this.updateStops(data); } });
+        
+        // Watch for change in vehicle locations
+        this.data.eventEmitters.vehicles.subscribe((data) => { this.vehicleHandler(data); });
         
         // Watch for change in location
         this.data.eventEmitters.location.subscribe((data) => { 
             this.location = data;
             this.updateLocation();
         });
+    }
+    
+    public updateVehicleVisibility(): void {
+        for (var v in this.allVehicles) {
+            
+            var vehicle = this.allVehicles[v];
+            
+            // only show vehicles for current direction
+            vehicle.marker.setVisible(vehicle.direction == this.direction);
+        }
+    }
+    
+    public vehicleHandler(vehicles: any): void {
+        // for each direction
+        for (var d in vehicles.data) {
+            
+            let direction = vehicles.data[d];
+            
+            // for each route in that direction
+            for (var r in direction) {
+                var route = direction[r];
                 
+                // for each vehicle in this route+direction combo
+                for (var v in route) {
+                    var vehicle = route[v];
+                    // needs to be a constant or else id will just be
+                    // last id when marker finally gets added
+                    let id = vehicle.vehicle.vehicle_id;
+                    let vehicleDirection = d;
+                    var lat = vehicle.vehicle.vehicle_lat;
+                    var lng = vehicle.vehicle.vehicle_lon;
+                    var location = new LatLng(lat, lng);
+                                        
+                    // if marker already exists, just move it
+                    if (id in this.allVehicles) {
+                        
+                        this.allVehicles[id].marker.setPosition(location);
+                        this.allVehicles[id].direction = vehicleDirection;
+                        
+                    } else {
+                        
+                        this.map.addMarker({ 
+                            position: location,
+                            title: "#" + id + " " + vehicle.trip_name,
+                            visible: (this.direction == vehicleDirection) ? true : false,
+                            icon: { url: 'file:///android_asset/www/assets/icon/train.png', size: { width: 48, height: 48 } },
+                            markerClick: function(marker) {
+                                //this.data.setStation(marker.get('lightrailName'));
+                                
+                            }.bind(this)
+                        }).then((marker: Marker) => { this.allVehicles[id] = { marker: marker, direction: vehicleDirection }; console.log(this.allVehicles); });
+                    }
+                }
+            }
+        }
+        
     }
     
     public updateStops(data: any): void {
-        console.log('adding stop data');
+
         // Go through each line on the greeline
         for (var l in data) {
             var line = data[l];
@@ -95,8 +154,6 @@ export class HomePage {
 
         }
         
-        console.log('done!');
-
     }
     
     // Change direction from inbound to outbound or vice versa
@@ -126,9 +183,7 @@ export class HomePage {
     // in the geolocation library
     // first: whether or not this is first load
     getQuickLocation(first: boolean = false): void {
-        
-        console.log('getting quick location');
-        try {
+
         this.map.getMyLocation(function(location) {
               
             if (this.stops.length > 0) {
@@ -169,9 +224,6 @@ export class HomePage {
                 
             }      
         }.bind(this));
-        } catch(e) {
-            console.log(e);
-        }
     }
 
     updateLocation(): void {
@@ -200,7 +252,16 @@ export class HomePage {
         
         // listen for MAP_READY event
         // must wait for this to fire before adding anything to map
-        this.map.one(GoogleMapsEvent.MAP_READY).then(() => { console.log('map is loaded'); this.mapIsLoaded = true; if (this.stops.length > 0) { this.updateStops(this.stops); } this.getQuickLocation(true); });
+        this.map.one(GoogleMapsEvent.MAP_READY).then(() => {
+            this.mapIsLoaded = true; 
+            
+            // if we have stops already, add them to the map
+            if (this.stops.length > 0) { 
+                this.updateStops(this.stops);
+            }
+            
+            this.getQuickLocation(true);
+        });
     }
     
 

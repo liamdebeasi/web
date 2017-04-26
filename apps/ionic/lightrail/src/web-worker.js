@@ -27,7 +27,7 @@ onmessage = function(e) {
                 
                 		res.json().then(function(data) {
                     		var trips = data.data;
-    
+                    		    
                     		if ("Inbound" in trips) {
                                 var trip = trips.Inbound;
                                 var formattedETA = (Math.floor(parseInt(trip.pre_away)/60)).toString() + " mins to";
@@ -44,7 +44,6 @@ onmessage = function(e) {
                         		trips.Outbound = { destinationETA: "No predictions for this station", destination: '' }
                     		}
                     		
-                    		console.log(trips);
                 			self.postMessage({ success: true, type: 'getPredictionForStop', data: data });
                         });
                 }).catch(function(e) {
@@ -52,6 +51,27 @@ onmessage = function(e) {
                 });
             }
             
+            break;
+            
+        case "getVehicleLocations":
+        
+            if (e.data.payload.routes) {
+        
+                fetch('https://69g7s44ull.execute-api.us-west-2.amazonaws.com/prod/getVehicleLocations?routes=' + e.data.payload.routes)
+                	.then(function(res) {
+                		 if (res.status !== 200) {
+                			self.postMessage({ success: false, type: 'getVehicleLocations', data: res.status});
+                         }
+                
+                		res.json().then(function(data) {
+                			self.postMessage({ success: true, type: 'getVehicleLocations', data: data });
+                        });
+                }).catch(function(e) {
+                	self.postMessage({ success: false, type: 'getVehicleLocations', data: e });
+                });
+            }
+                
+        
             break;
         
         default:
