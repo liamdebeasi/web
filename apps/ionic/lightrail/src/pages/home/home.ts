@@ -49,7 +49,7 @@ export class HomePage {
         this.data.eventEmitters.stops.subscribe((data) => { this.stops = data; if (this.mapIsLoaded) { this.updateStops(data); } });
         
         // Watch for change in vehicle locations
-        this.data.eventEmitters.vehicles.subscribe((data) => { this.vehicleHandler(data); });
+        this.data.eventEmitters.vehicles.subscribe((data) => { console.log('emitted vehicle locations'); this.vehicleHandler(data); });
         
         // Watch for change in location
         this.data.eventEmitters.location.subscribe((data) => { 
@@ -70,16 +70,19 @@ export class HomePage {
     
     public vehicleHandler(vehicles: any): void {
         // for each direction
-        for (var d in vehicles.data) {
-            
+        var activeVehicles = {};
+        
+        for (var d in vehicles.data) {            
             let direction = vehicles.data[d];
             
             // for each route in that direction
             for (var r in direction) {
+
                 var route = direction[r];
                 
                 // for each vehicle in this route+direction combo
                 for (var v in route) {
+
                     var vehicle = route[v];
                     // needs to be a constant or else id will just be
                     // last id when marker finally gets added
@@ -88,6 +91,8 @@ export class HomePage {
                     var lat = vehicle.vehicle.vehicle_lat;
                     var lng = vehicle.vehicle.vehicle_lon;
                     var location = new LatLng(lat, lng);
+                    
+                    activeVehicles[id] = true;
                                         
                     // if marker already exists, just move it
                     if (id in this.allVehicles) {
@@ -95,8 +100,12 @@ export class HomePage {
                         this.allVehicles[id].marker.setPosition(location);
                         this.allVehicles[id].direction = vehicleDirection;
                         
-                    } else {
+                        // when trains get to the end of an inbound line, they can become
+                        // an outbound train
+                        this.allVehicles[id].marker.setVisible( (this.direction == vehicleDirection) ? true : false);                        
+                        this.allVehicles[id].marker.setTitle('#' + id + " " + vehicle.trip_name);
                         
+                    } else {
                         this.map.addMarker({ 
                             position: location,
                             title: "#" + id + " " + vehicle.trip_name,
@@ -106,12 +115,28 @@ export class HomePage {
                                 //this.data.setStation(marker.get('lightrailName'));
                                 
                             }.bind(this)
-                        }).then((marker: Marker) => { this.allVehicles[id] = { marker: marker, direction: vehicleDirection }; console.log(this.allVehicles); });
+                        }).then((marker: Marker) => { console.log('vehicle added as marker'); this.allVehicles[id] = { marker: marker, direction: vehicleDirection };});
                     }
                 }
             }
         }
         
+        this.cleanUpOldVehicles(activeVehicles);
+        
+    }
+    
+    // go through all markers and clean up old markers no longer in use
+    public cleanUpOldVehicles(vehicles: any): void {
+        console.log(vehicles);
+        for (var v in this.allVehicles) {
+            if (!(v in vehicles)) {
+                console.log('Removed',this.allVehicles[v].marker.getTitle());
+                this.allVehicles[v].marker.remove();
+                delete this.allVehicles[v]; 
+                
+                console.log(this.allVehicles);               
+            }
+        }
     }
     
     public updateStops(data: any): void {
@@ -237,10 +262,12 @@ export class HomePage {
             duration: 500
         }); 
         
-        try {
-            this.locationMarker.setPosition(myLocation);
-        } catch(e) {
-            console.log(e);
+        if (this.locationMarker) {
+            try {
+                this.locationMarker.setPosition(myLocation);
+            } catch(e) {
+                console.log(e);
+            }
         }
     }
     

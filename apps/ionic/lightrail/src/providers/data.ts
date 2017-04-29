@@ -87,7 +87,16 @@ export class DataProvider {
         let watch = this.geolocation.watchPosition();
         watch.subscribe((resp) => {
             if (resp.coords) { 
-                this.setData('location', { lat: resp.coords.latitude, lng: resp.coords.longitude }); 
+                var roundedLat = resp.coords.latitude.toFixed(6);
+                var roundedLng = resp.coords.longitude.toFixed(6);
+                
+                var location = this.getData('location');
+
+                if (location.lat != roundedLat || location.lng != roundedLng) {     
+                    console.log('updating location', { lat: roundedLat, lng: roundedLng});  
+                    this.setData('location', { lat: roundedLat, lng: roundedLng}); 
+                }
+                
             } else {
                 console.log('Error getting updated location');
             }
@@ -112,6 +121,7 @@ export class DataProvider {
     
     // User tapped a new station marker
     public setStation(stop: string): any {
+        console.log('setting station to',stop);
         this.setData('station', stop);
         webWorker.postMessage( { type: 'getPredictionForStop', payload: { stop: stop } });
         return true;
@@ -130,6 +140,8 @@ export class DataProvider {
                 break;
                 
             case "getPredictionForStop":
+                console.log('got predictions',res.data.data.data);
+            
                 this.lastRequest = res.data.data.data;
             
                 var trip = res.data.data.data[this.getData('direction')];

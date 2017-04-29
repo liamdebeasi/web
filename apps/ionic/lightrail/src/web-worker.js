@@ -19,6 +19,7 @@ onmessage = function(e) {
             
         case "getPredictionForStop":
             if (e.data.payload.stop) {
+                console.log('https://69g7s44ull.execute-api.us-west-2.amazonaws.com/prod/getPredictionForStop?stop=' + e.data.payload.stop);
                 fetch('https://69g7s44ull.execute-api.us-west-2.amazonaws.com/prod/getPredictionForStop?stop=' + e.data.payload.stop)
                 	.then(function(res) {
                 		 if (res.status !== 200) {
@@ -27,6 +28,7 @@ onmessage = function(e) {
                 
                 		res.json().then(function(data) {
                     		var trips = data.data;
+                    		console.log('getprediction data',trips);
                     		    
                     		if ("Inbound" in trips) {
                                 var trip = trips.Inbound;
@@ -54,7 +56,7 @@ onmessage = function(e) {
             break;
             
         case "getVehicleLocations":
-        
+            console.log('made request for vehicle locations');
             if (e.data.payload.routes) {
         
                 fetch('https://69g7s44ull.execute-api.us-west-2.amazonaws.com/prod/getVehicleLocations?routes=' + e.data.payload.routes)
@@ -64,6 +66,7 @@ onmessage = function(e) {
                          }
                 
                 		res.json().then(function(data) {
+                    		console.log('got vehicle locations');
                 			self.postMessage({ success: true, type: 'getVehicleLocations', data: data });
                         });
                 }).catch(function(e) {

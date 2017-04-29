@@ -1,7 +1,7 @@
 {
   "name": "lightrail",
-  "author": "Ionic Framework",
-  "homepage": "http://ionicframework.com/",
+  "author": "Liam DeBeasi",
+  "homepage": "https://liamdebeasi.com/",
   "private": true,
   "scripts": {
     "clean": "ionic-app-scripts clean",
@@ -31,11 +31,11 @@
     "zone.js": "^0.8.4"
   },
   "devDependencies": {
-    "@ionic/app-scripts": "1.3.0",
+    "@ionic/app-scripts": "1.3.5",
     "@ionic/cli-build-ionic-angular": "0.0.4",
     "@ionic/cli-plugin-cordova": "0.0.10",
     "typescript": "~2.2.1"
   },
-  "version": "0.0.1",
-  "description": "An Ionic project"
+  "version": "1.0.0",
+  "description": "Lightrail"
 }
