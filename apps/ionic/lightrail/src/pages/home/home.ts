@@ -27,6 +27,8 @@ export class HomePage {
     
     public allVehicles = {};
     
+    public imagePath: string;
+    
     constructor(private platform: Platform, public navCtrl: NavController, private maps: GoogleMaps, private popoverCtrl: PopoverController, private modalCtrl: ModalController, private data: DataProvider, private splashScreen: SplashScreen) {
         
         // once the platform is ready, all Ionic Native plugins
@@ -56,6 +58,12 @@ export class HomePage {
             this.location = data;
             this.updateLocation();
         });
+        
+        if (platform.is('android')) {
+            this.imagePath = 'file:///android_asset/www/';
+        } else {
+            this.imagePath = '';
+        }
     }
     
     public updateVehicleVisibility(): void {
@@ -110,7 +118,7 @@ export class HomePage {
                             position: location,
                             title: "#" + id + " " + vehicle.trip_name,
                             visible: (this.direction == vehicleDirection) ? true : false,
-                            icon: { url: 'file:///android_asset/www/assets/icon/train.png', size: { width: 48, height: 48 } },
+                            icon: { url: this.imagePath + 'assets/icon/train.png', size: { width: 48, height: 48 } },
                             markerClick: function(marker) {
                                 //this.data.setStation(marker.get('lightrailName'));
                                 
@@ -161,7 +169,7 @@ export class HomePage {
                 this.map.addMarker({ 
                     position: stopLocation,
                     title: stop.parent_station_name,
-                    icon: { url: 'file:///android_asset/www/assets/icon/stop.png', size: { width: 18, height: 18 } },
+                    icon: { url: this.imagePath + 'assets/icon/stop.png', size: { width: 18, height: 18 } },
                     markerClick: function(marker) {
                         this.data.setStation(marker.get('lightrailName'));
                         
@@ -227,7 +235,7 @@ export class HomePage {
                 });
             
 
-                this.map.addMarker({ position: myLocation, title: "Current Location", icon: { url: 'file:///android_asset/www/assets/icon/marker.png', size: { width: 20, height: 20 } } })
+                this.map.addMarker({ position: myLocation, title: "Current Location", icon: { url: this.imagePath + 'assets/icon/marker.png', size: { width: 20, height: 20 } } })
                     .then((marker: Marker) => {                        
                         this.locationMarker = marker;
                     });

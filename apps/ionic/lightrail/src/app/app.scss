@@ -14,3 +14,53 @@
 // To declare rules for a specific mode, create a child rule
 // for the .md, .ios, or .wp mode classes. The mode class is
 // automatically applied to the <body> element in the app.
+
+
+.ios {
+    .nav-decor {
+        display: none !important;   // fixes issue on ios where black background blocks map
+    }
+    
+    ion-fab {
+        button {
+            background-color: rgba(255, 255, 255, 0.7);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            box-shadow: 0px 0px 5px #bbbbbb;
+            color: rgba(255, 255, 255, 0.7);
+            &.activated {
+                background-color: rgba(255, 255, 255, 0.6);
+            }
+            &.location {
+                ion-icon {
+                    width: 24px;
+                    height: 24px;
+                    background-image: url('../assets/icon/navigation.png');
+                    background-size: 24px 24px;
+                    background-repeat: no-repeat;
+                    background-position: left center;
+                }
+            }
+            ion-icon {
+                font-size: 7rem;
+            }
+        }
+    }
+
+    
+    ion-footer {
+        ion-toolbar {
+            .toolbar-content {
+                ion-title {
+                    padding: 0px 10px;
+                    text-align: left;
+                    position: relative;
+                    float: left;
+                    width: calc(100% - 50px);
+                    .toolbar-title {
+                        text-align: left;
+                    }
+                }
+            }
+        }
+    }
+}

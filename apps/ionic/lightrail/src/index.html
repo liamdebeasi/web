@@ -23,6 +23,12 @@
     }
   </script>-->
   
+    
+  <!-- fetch api polyfill
+        load up here bc worker needs polyfill
+ -->
+  <script src="build/fetch.js"></script>
+  
     <script>
         if (window.Worker) {
             var webWorker = new Worker("web-worker.js");

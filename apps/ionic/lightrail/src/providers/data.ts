@@ -91,6 +91,8 @@ export class DataProvider {
                 var roundedLng = resp.coords.longitude.toFixed(6);
                 
                 var location = this.getData('location');
+                
+                console.log('got new location of',roundedLat + ',',roundedLng);
 
                 if (location.lat != roundedLat || location.lng != roundedLng) {     
                     console.log('updating location', { lat: roundedLat, lng: roundedLng});  

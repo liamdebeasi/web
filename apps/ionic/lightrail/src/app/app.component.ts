@@ -18,7 +18,7 @@ export class MyApp {
             if (platform.is('android')) {
               statusBar.backgroundColorByHexString('#399B00');
             } else {
-                statusBar.styleDefault();
+                statusBar.styleLightContent();
             }
         });
     }

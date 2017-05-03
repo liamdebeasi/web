@@ -1,5 +1,9 @@
 page-home {
     ion-content {
+        .scroll-content {
+            overflow: hidden !important;
+        }
+        
         #map {
             height: 100%;
             overflow: hidden;
